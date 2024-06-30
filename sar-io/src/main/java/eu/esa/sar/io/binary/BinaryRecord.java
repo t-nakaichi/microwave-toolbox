@@ -59,6 +59,10 @@ public class BinaryRecord {
         return db.getAttributeInt(name);
     }
 
+    public final Long getAttributeLong(final String name){
+        return db.getAttributeLong(name);
+    }
+
     public final Double getAttributeDouble(final String name) {
         return db.getAttributeDouble(name);
     }

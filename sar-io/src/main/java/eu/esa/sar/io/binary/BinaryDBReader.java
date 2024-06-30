@@ -72,6 +72,10 @@ public final class BinaryDBReader {
                 MetadataAttribute attrib = new MetadataAttribute(key, ProductData.TYPE_INT32, 1);
                 attrib.getData().setElemInt((Integer) value);
                 elem.addAttribute(attrib);
+            }else if(value instanceof Long){
+                MetadataAttribute attrib = new MetadataAttribute(key, ProductData.TYPE_INT64, 1);
+                attrib.getData().setElemLong((Long) value);
+                elem.addAttribute(attrib);
             } else if (value instanceof Double) {
                 MetadataAttribute attrib = new MetadataAttribute(key, ProductData.TYPE_FLOAT64, 1);
                 attrib.getData().setElemDouble((Double) value);
@@ -329,6 +333,11 @@ public final class BinaryDBReader {
 
     public final Integer getAttributeInt(final String name) {
         Integer i = (Integer) get(name);
+        return i == null ? 0 : i;
+    }
+
+    public final Long getAttributeLong(final String name){
+        Long i = (Long) get(name);
         return i == null ? 0 : i;
     }
 
