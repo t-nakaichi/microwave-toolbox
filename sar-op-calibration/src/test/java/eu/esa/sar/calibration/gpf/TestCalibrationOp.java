@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 by Array Systems Computing Inc. http://www.array.ca
+ * Copyright (C) 2024 by SkyWatch Space Applications Inc. http://www.skywatch.com
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -16,14 +16,12 @@
 package eu.esa.sar.calibration.gpf;
 
 import com.bc.ceres.annotation.STTM;
-import eu.esa.sar.commons.test.SARTests;
+import eu.esa.sar.commons.test.ProcessorTest;
 import eu.esa.sar.commons.test.TestData;
 import org.esa.snap.core.datamodel.Product;
 import org.esa.snap.core.gpf.OperatorSpi;
-import org.esa.snap.engine_utilities.gpf.TestProcessor;
 import org.esa.snap.engine_utilities.util.TestUtils;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -34,27 +32,12 @@ import static org.junit.Assume.assumeTrue;
 /**
  * Unit test for Calibration Operator.
  */
-public class TestCalibrationOp {
-
-    static {
-        TestUtils.initTestEnvironment();
-    }
+public class TestCalibrationOp extends ProcessorTest {
 
     private final static OperatorSpi spi = new CalibrationOp.Spi();
-    private TestProcessor testProcessor;
-
-    private String[] productTypeExemptions = {"_BP", "XCA", "RAW", "WVW", "WVI", "WVS", "WSS", "OCN", "DOR", "GeoTIFF", "SCS_U"};
-    private String[] exceptionExemptions = {"not supported", "numbands is zero",
-            "calibration has already been applied",
-            "The product has already been calibrated",
-            "Cannot apply calibration to coregistered product",
-            "WV is not a valid acquisition mode from: IW,EW,SM"
-    };
 
     @Before
     public void setUp() {
-        testProcessor = SARTests.createTestProcessor();
-
         // If any of the file does not exist: the test will be ignored
         assumeTrue(TestData.inputASAR_WSM + "not found", TestData.inputASAR_WSM.exists());
         assumeTrue(TestData.inputASAR_IMS + "not found", TestData.inputASAR_IMS.exists());
@@ -65,10 +48,17 @@ public class TestCalibrationOp {
     }
 
     @Test
-    public void testProcessingASAR_WSM() throws Exception {
+    public void testProcessingASAR_WSM_Sigma0() throws Exception {
 
         final float[] expected = new float[] {0.027908697724342346f, 0.019894488155841827f, 0.020605698227882385f};
         processFile(TestData.inputASAR_WSM, "sigma0_VV", expected);
+    }
+
+    @Test
+    public void testProcessingASAR_WSM_beta0() throws Exception {
+
+        final float[] expected = new float[] {0.05965894f, 0.04252025f, 0.044032857f};
+        processFile(TestData.inputASAR_WSM, "beta0_VV", expected, true);
     }
 
     @Test
@@ -124,11 +114,20 @@ public class TestCalibrationOp {
      * @throws Exception general exception
      */
     private void processFile(final File inputFile, final String bandName, final float[] expected) throws Exception {
+        processFile(inputFile, bandName, expected, false);
+    }
+
+    private void processFile(final File inputFile, final String bandName, final float[] expected,
+                             boolean outputBeta0) throws Exception {
 
         try(final Product sourceProduct = TestUtils.readSourceProduct(inputFile)) {
 
             final CalibrationOp op = (CalibrationOp) spi.createOperator();
             assertNotNull(op);
+            if(outputBeta0) {
+                //op.setParameter("outputBetaBand", true);
+                op.setParameter("createBetaBand", true);
+            }
             op.setSourceProduct(sourceProduct);
 
             // get targetProduct: execute initialize()
@@ -137,59 +136,5 @@ public class TestCalibrationOp {
 
             TestUtils.comparePixels(targetProduct, bandName, expected);
         }
-    }
-
-    @Test
-    public void testProcessAllASAR() throws Exception {
-        testProcessor.testProcessAllInPath(spi, SARTests.rootPathsASAR, "ENVISAT", productTypeExemptions, null);
-    }
-
-    @Test
-    public void testProcessAllERS() throws Exception {
-        testProcessor.testProcessAllInPath(spi, SARTests.rootPathsERS, "ERS CEOS", productTypeExemptions, null);
-    }
-
-    @Test
-    public void testProcessAllALOS() throws Exception {
-        testProcessor.testProcessAllInPath(spi, SARTests.rootPathsALOS, "ALOS PALSAR CEOS", productTypeExemptions, null);
-    }
-
-    @Test
-    @Ignore("Disable for now. Problem with GeoTiff reader")
-    public void testProcessAllALOS2() throws Exception {
-        testProcessor.testProcessAllInPath(spi, SARTests.rootPathsALOS2, "ALOS-2", productTypeExemptions, exceptionExemptions);
-    }
-
-    @Test
-    @Ignore("Disable for now. Not all Cosmo products are supported")
-    public void testProcessAllCosmo() throws Exception {
-        testProcessor.testProcessAllInPath(spi, SARTests.rootPathsCosmoSkymed, "CosmoSkymed", productTypeExemptions, exceptionExemptions);
-    }
-
-    @Test
-    public void testProcessAllTSX() throws Exception {
-        testProcessor.testProcessAllInPath(spi, SARTests.rootPathsTerraSarX, "TerraSarX", productTypeExemptions, exceptionExemptions);
-    }
-
-    @Test
-    public void testProcessAllSentinel1() throws Exception {
-        testProcessor.testProcessAllInPath(spi, SARTests.rootPathsSentinel1, "SENTINEL-1", productTypeExemptions, exceptionExemptions);
-    }
-
-    @Test
-    public void testProcessAllK5() throws Exception {
-        testProcessor.testProcessAllInPath(spi, SARTests.rootPathsK5, "Kompsat5", productTypeExemptions, exceptionExemptions);
-    }
-
-    @Test
-    @Ignore
-    public void testProcessAllJERS() throws Exception {
-        testProcessor.testProcessAllInPath(spi, SARTests.rootPathsJERS, "JERS", productTypeExemptions, exceptionExemptions);
-    }
-
-    @Test
-    @Ignore
-    public void testProcessAllIceye() throws Exception {
-        testProcessor.testProcessAllInPath(spi, SARTests.rootPathsIceye, "ICEYE", productTypeExemptions, exceptionExemptions);
     }
 }
